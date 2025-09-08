@@ -6,7 +6,6 @@ import src.com.hms.model.Appointment;
 import src.com.hms.model.AvailabilitySlot;
 import src.com.hms.model.Doctor;
 import src.com.hms.model.Patient;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
@@ -51,10 +50,9 @@ public class HospitalManagementApp {
                     System.out.println("Invalid choice. Please try again.");
             }
         } while (choice != 3);
-        if (loggedInUser != null) {
-            showUserDashboard();
-        }
+        
     }
+    
 
     private void displayMainMenu() {
         System.out.println("\n--------------------------------------------------");
@@ -294,7 +292,8 @@ public class HospitalManagementApp {
             selectedDoctor.getDoctorId(),
             chosenSlot.getDate(),
             chosenSlot.getStartTime(),
-            Appointment.AppointmentStatus.SCHEDULED
+            Appointment.AppointmentStatus.SCHEDULED,
+            chosenSlot.getSlotId()
         );
 
         boolean apptSaved = dbManager.saveAppointment(newAppointment);
@@ -309,6 +308,72 @@ public class HospitalManagementApp {
             }
         } else {
             System.err.println("Failed to book appointment. Please try again.");
+        }
+    }
+
+    private void cancelPatientAppointment() {
+        System.out.println("\n--- Cancel My Appointment ---");
+        if (loggedInUser == null || loggedInUser.getRole() != User.UserRole.PATIENT) {
+            System.out.println("Error: Only patients can cancel appointments. Please login as a patient.");
+            return;
+        }
+
+        Patient currentPatient = dbManager.loadPatientByUserId(loggedInUser.getUserId());
+        if (currentPatient == null) {
+            System.out.println("Error: Patient profile not found. Cannot cancel appointments.");
+            return;
+        }
+
+        // Display existing appointments so the user knows what to cancel
+        List<Appointment> patientAppointments = dbManager.loadAppointmentsByPatientId(currentPatient.getPatientId());
+        if (patientAppointments.isEmpty()) {
+            System.out.println("You have no appointments to cancel.");
+            return;
+        }
+
+        System.out.println("Your current appointments:");
+        System.out.println("--------------------------------------------------------------------------------------------------");
+        System.out.printf("%-5s %-10s %-25s %-12s %-10s %-15s\n",
+                          "No.", "ID", "Doctor Name", "Date", "Time", "Status");
+        System.out.println("--------------------------------------------------------------------------------------------------");
+        int appointmentNumber = 1;
+        for (Appointment appt : patientAppointments) {
+            Doctor doctor = dbManager.loadDoctorById(appt.getDoctorId());
+            String doctorName = (doctor != null) ? doctor.getName() : "Unknown Doctor";
+            System.out.printf("%-5d %-10s %-25s %-12s %-10s %-15s\n",
+                              appointmentNumber++, appt.getAppointmentId(), doctorName, appt.getDate(), appt.getTime(), appt.getStatus().name());
+        }
+        System.out.println("--------------------------------------------------------------------------------------------------");
+
+        int chosenAppointmentNumber;
+        Appointment chosenAppointment = null;
+        String apptIdToCancel;
+
+        do {
+            System.out.print("Select the appointment to cancel by number: ");
+            chosenAppointmentNumber = getUserChoice(); // Re-use getUserChoice for integer input
+            if (chosenAppointmentNumber >= 1 && chosenAppointmentNumber <= patientAppointments.size()) {
+                chosenAppointment = patientAppointments.get(chosenAppointmentNumber - 1); // Get appointment by index
+                apptIdToCancel = chosenAppointment.getAppointmentId();
+                break;
+            } else {
+                System.out.println("Invalid number. Please enter a number from the list.");
+                apptIdToCancel = null;
+            }
+        } while (chosenAppointment == null);
+
+        System.out.print("Are you sure you want to cancel appointment " + apptIdToCancel + "? (yes/no): ");
+        String confirmation = scanner.nextLine();
+        if (!confirmation.equalsIgnoreCase("yes")) {
+            System.out.println("Cancellation request aborted.");
+            return;
+        }
+
+        boolean success = dbManager.cancelAppointment(apptIdToCancel);
+        if (success) {
+            System.out.println("Appointment " + apptIdToCancel + " has been successfully canceled.");
+        } else {
+            System.out.println("Failed to cancel appointment. Please try again.");
         }
     }
 
@@ -351,8 +416,7 @@ public class HospitalManagementApp {
                     viewPatientAppointments();
                     break;
                 case 3:
-                    System.out.println("Feature: Cancel My Appointment (coming soon!)");
-                    // callCancelPatientAppointmentMethod();
+                    cancelPatientAppointment();
                     break;
                 case 4:
                     System.out.println("Feature: Edit My Profile (coming soon!)");

@@ -9,16 +9,18 @@ public class Appointment {
     private String date;      
     private String time;      
     private AppointmentStatus status; 
+    private String slotId;
 
     
     public Appointment(String appointmentId, String patientId, String doctorId,
-                       String date, String time, AppointmentStatus status) {
+                       String date, String time, AppointmentStatus status, String slotId) {
         this.appointmentId = appointmentId;
         this.patientId = patientId;
         this.doctorId = doctorId;
         this.date = date;
         this.time = time;
         this.status = status;
+        this.slotId = slotId;  
     }
 
     
@@ -44,6 +46,10 @@ public class Appointment {
 
     public AppointmentStatus getStatus() {
         return status;
+    }
+
+    public String getSlotId() {
+        return slotId;
     }
 
     
