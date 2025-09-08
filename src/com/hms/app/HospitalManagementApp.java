@@ -1,0 +1,454 @@
+package src.com.hms.app;
+
+import src.com.hms.database.DatabaseManager;
+import src.com.hms.model.User;
+import src.com.hms.model.Appointment;
+import src.com.hms.model.AvailabilitySlot;
+import src.com.hms.model.Doctor;
+import src.com.hms.model.Patient;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
+import java.util.UUID; 
+
+public class HospitalManagementApp {
+
+    private DatabaseManager dbManager;
+    private Scanner scanner;
+    private User loggedInUser;
+
+    public HospitalManagementApp() {
+        dbManager = new DatabaseManager(); 
+        scanner = new Scanner(System.in); 
+        dbManager.createTables();
+    }
+
+    public void start() {
+        System.out.println("--------------------------------------------------");
+        System.out.println("|       Hospital Management System (HMS)         |");
+        System.out.println("--------------------------------------------------");
+
+        int choice;
+        do {
+            displayMainMenu();
+            choice = getUserChoice();
+
+            switch (choice) {
+                case 1:
+                    loginUser();
+                    if (loggedInUser != null) {
+                        showUserDashboard();
+                    }
+                    break;
+                case 2:
+                    registerPatientAccount();
+                    break;
+                case 3:
+                    System.out.println("Exiting HMS. Goodbye!");
+                    break;
+                default:
+                    System.out.println("Invalid choice. Please try again.");
+            }
+        } while (choice != 3);
+        if (loggedInUser != null) {
+            showUserDashboard();
+        }
+    }
+
+    private void displayMainMenu() {
+        System.out.println("\n--------------------------------------------------");
+        System.out.println("|                                                |");
+        System.out.println("|   1. Login                                     |");
+        System.out.println("|   2. Register New Patient Account              |");
+        System.out.println("|   3. Exit                                      |");
+        System.out.println("|                                                |");
+        System.out.println("--------------------------------------------------");
+        System.out.print("Enter your choice: ");
+    }
+
+    private int getUserChoice() {
+        while (!scanner.hasNextInt()) {
+            System.out.println("Invalid input. Please enter a number.");
+            scanner.next(); 
+            System.out.print("Enter your choice: ");
+        }
+        int choice = scanner.nextInt();
+        scanner.nextLine();
+        return choice;
+    }
+
+    private void loginUser() {
+        System.out.println("\n--- User Login ---");
+        System.out.print("Enter username: ");
+        String username = scanner.nextLine();
+        System.out.print("Enter password: ");
+        String password = scanner.nextLine();
+
+        User user = dbManager.loadUserByUsername(username);
+
+        if (user != null && user.getPassword().equals(password)) {
+            loggedInUser = user;
+            System.out.println("Login successful! Welcome, " + user.getUsername() + "!");
+            System.out.println("You are logged in as a " + user.getRole() + ".");
+        } else {
+            System.out.println("Login failed. Invalid username or password.");
+            System.out.println("Please try again or register a new account.");
+        }
+    }
+
+    private void registerPatientAccount() {
+        System.out.println("\n--- Register New Patient Account ---");
+        System.out.print("Enter your full name: ");
+        String name = scanner.nextLine();
+        System.out.print("Enter your mobile number (e.g., 1234567890): ");
+        String mobileNumber = scanner.nextLine();
+        System.out.print("Enter your email address: ");
+        String email = scanner.nextLine();
+        System.out.print("Enter your Date of Birth (YYYY-MM-DD): ");
+        String dateOfBirth = scanner.nextLine();
+        System.out.print("Enter a profile picture URL or path (optional, press Enter to skip): ");
+        String profilePicture = scanner.nextLine(); // Can be empty string
+
+        System.out.print("Choose a username: ");
+        String username = scanner.nextLine();
+        System.out.print("Choose a password: ");
+        String password = scanner.nextLine();
+
+        
+        if (username.isEmpty() || password.isEmpty() || name.isEmpty() || mobileNumber.isEmpty() || email.isEmpty() || dateOfBirth.isEmpty()) {
+            System.out.println("Registration failed. Please fill in all required fields.");
+            return;
+        }
+
+        
+        String userId = "U-" + UUID.randomUUID().toString().substring(0, 8);
+        String patientId = "P-" + UUID.randomUUID().toString().substring(0, 8); // Often patientId == userId for 1:1
+
+        
+        User newUser = new User(userId, username, password, User.UserRole.PATIENT);
+        boolean userSaved = dbManager.saveUser(newUser);
+
+        if (userSaved) {
+            
+            Patient newPatient = new Patient(patientId, name, mobileNumber, email, dateOfBirth, profilePicture, userId);
+            boolean patientSaved = dbManager.savePatient(newPatient);
+
+            if (patientSaved) {
+                System.out.println("Account created successfully! Welcome, " + name + "!");
+                System.out.println("Please login using your new username and password.");
+            } else {
+               
+                System.out.println("Registration failed: Could not save patient details.");
+            }
+        } else {
+            
+            System.out.println("Registration failed. Please try again with a different username.");
+        }
+    }
+
+    private void viewPatientAppointments() {
+        System.out.println("\n--- My Appointments ---");
+        
+        if (loggedInUser == null || loggedInUser.getRole() != User.UserRole.PATIENT) {
+            System.out.println("Error: No patient logged in or incorrect role.");
+            return;
+        }
+        Patient currentPatient = dbManager.loadPatientByUserId(loggedInUser.getUserId());
+
+        if (currentPatient == null) {
+            System.out.println("Error: Patient profile not found for your user account. Please ensure your patient details are registered.");
+            return;
+        }
+
+        List<Appointment> patientAppointments = dbManager.loadAppointmentsByPatientId(currentPatient.getPatientId());
+
+        if (patientAppointments.isEmpty()) {
+            System.out.println("You have no appointments scheduled.");
+        } else {
+            System.out.println("Here are your appointments:");
+            System.out.println("----------------------------------------------------------------------------------");
+            System.out.printf("%-10s %-25s %-12s %-10s %-15s %-10s\n",
+                              "Appt ID", "Doctor Name", "Date", "Time", "Status", "Patient ID");
+            System.out.println("----------------------------------------------------------------------------------");
+            for (Appointment appt : patientAppointments) {
+                Doctor doctor = dbManager.loadDoctorById(appt.getDoctorId());
+                String doctorName = (doctor != null) ? doctor.getName() : "Unknown Doctor";
+                System.out.printf("%-10s %-25s %-12s %-10s %-15s %-10s\n",
+                                  appt.getAppointmentId(),
+                                  doctorName,
+                                  appt.getDate(),
+                                  appt.getTime(),
+                                  appt.getStatus().name(),
+                                  appt.getPatientId());
+            }
+            System.out.println("----------------------------------------------------------------------------------");
+        }
+    }
+
+    private void bookAppointment() {
+        System.out.println("\n--- Book New Appointment ---");
+        if (loggedInUser == null || loggedInUser.getRole() != User.UserRole.PATIENT) {
+            System.out.println("Error: Only patients can book appointments. Please login as a patient.");
+            return;
+        }
+
+        Patient currentPatient = dbManager.loadPatientByUserId(loggedInUser.getUserId());
+        if (currentPatient == null) {
+            System.out.println("Error: Patient profile not found for your user account. Cannot book appointment.");
+            return;
+        }
+
+
+        List<Doctor> doctors = dbManager.loadAllDoctors();
+        if (doctors.isEmpty()) {
+            System.out.println("No doctors available in the system to book an appointment with.");
+            return;
+        }
+
+        System.out.println("\n--- Available Doctors ---");
+        System.out.println("----------------------------------------------------------------------------------");
+        System.out.printf("%-5s %-10s %-25s %-15s %-10s\n", "No.", "ID", "Name", "Specialty", "Mobile"); // Added No. header
+        System.out.println("----------------------------------------------------------------------------------");
+        int doctorNumber = 1;
+        for (Doctor doc : doctors) {
+            System.out.printf("%-5d %-10s %-25s %-15s %-10s\n",
+                              doctorNumber++, doc.getDoctorId(), doc.getName(), doc.getSpecialty(), doc.getMobileNumber());
+        }
+        System.out.println("----------------------------------------------------------------------------------");
+
+        int chosenDoctorNumber;
+        Doctor selectedDoctor = null;
+        do {
+            System.out.print("Select a doctor by number: ");
+            chosenDoctorNumber = getUserChoice(); 
+            if (chosenDoctorNumber >= 1 && chosenDoctorNumber <= doctors.size()) {
+                selectedDoctor = doctors.get(chosenDoctorNumber - 1); 
+            } else {
+                System.out.println("Invalid number. Please enter a number from the list.");
+            }
+        } while (selectedDoctor == null);
+
+        System.out.println("You selected: " + selectedDoctor.getName() + " (" + selectedDoctor.getSpecialty() + ")");
+
+
+       
+        List<AvailabilitySlot> doctorSlots = dbManager.loadAvailableSlotsByDoctorId(selectedDoctor.getDoctorId());
+        List<AvailabilitySlot> availableSlots = new ArrayList<>(); 
+
+        for (AvailabilitySlot slot : doctorSlots) {
+            if (!slot.isBooked()) { 
+                availableSlots.add(slot);
+            }
+        }
+
+        if (availableSlots.isEmpty()) {
+            System.out.println("No available slots for this doctor at the moment.");
+            return;
+        }
+
+        System.out.println("\n--- Available Slots for " + selectedDoctor.getName() + " ---");
+        System.out.println("------------------------------------------------------------------");
+        System.out.printf("%-5s %-12s %-8s %-8s %-10s\n", "No.", "Date", "Start", "End", "Slot ID"); // Added Slot ID for reference
+        System.out.println("------------------------------------------------------------------");
+        int slotNumber = 1;
+        for (AvailabilitySlot slot : availableSlots) {
+            System.out.printf("%-5d %-12s %-8s %-8s %-10s\n",
+                              slotNumber++, slot.getDate(), slot.getStartTime(), slot.getEndTime(), slot.getSlotId());
+        }
+        System.out.println("------------------------------------------------------------------");
+
+        int chosenSlotNumber;
+        AvailabilitySlot chosenSlot = null;
+        do {
+            System.out.print("Select a slot by number: ");
+            chosenSlotNumber = getUserChoice(); // Re-use getUserChoice
+            if (chosenSlotNumber >= 1 && chosenSlotNumber <= availableSlots.size()) {
+                chosenSlot = availableSlots.get(chosenSlotNumber - 1); // Get slot by index (0-based)
+            } else {
+                System.out.println("Invalid number. Please enter a number from the list.");
+            }
+        } while (chosenSlot == null);
+
+
+        
+        System.out.println("\n--- Confirm Your Appointment ---");
+        System.out.println("Patient:     " + currentPatient.getName());
+        System.out.println("Doctor:      " + selectedDoctor.getName() + " (" + selectedDoctor.getSpecialty() + ")");
+        System.out.println("Date:        " + chosenSlot.getDate());
+        System.out.println("Time:        " + chosenSlot.getStartTime() + " - " + chosenSlot.getEndTime());
+        System.out.print("Confirm booking? (yes/no): ");
+        String confirmation = scanner.nextLine(); 
+
+        if (!confirmation.equalsIgnoreCase("yes")) {
+            System.out.println("Appointment booking cancelled.");
+            return;
+        }
+
+
+        
+        String appointmentId = "APP-" + UUID.randomUUID().toString().substring(0, 8); // Generate unique appointment ID
+        Appointment newAppointment = new Appointment(
+            appointmentId,
+            currentPatient.getPatientId(),
+            selectedDoctor.getDoctorId(),
+            chosenSlot.getDate(),
+            chosenSlot.getStartTime(),
+            Appointment.AppointmentStatus.SCHEDULED
+        );
+
+        boolean apptSaved = dbManager.saveAppointment(newAppointment);
+
+        if (apptSaved) {
+            boolean slotUpdated = dbManager.updateAvailabilitySlotStatus(chosenSlot.getSlotId(), true); // Mark as booked
+            if (slotUpdated) {
+                System.out.println("\nAppointment successfully booked!");
+                System.out.println("Appointment ID: " + appointmentId);
+            } else {
+                System.err.println("Appointment booked, but failed to update slot status. Please contact support.");
+            }
+        } else {
+            System.err.println("Failed to book appointment. Please try again.");
+        }
+    }
+
+    private void showUserDashboard() {
+        System.out.println("\n--- " + loggedInUser.getRole() + " Dashboard ---");
+        System.out.println("Welcome, " + loggedInUser.getUsername() + "!");
+
+        switch (loggedInUser.getRole()) {
+            case PATIENT:
+                displayPatientMenu();
+                break;
+            case DOCTOR:
+                displayDoctorMenu();
+                break;
+            case ADMIN:
+                displayAdminMenu();
+                break;
+            default:
+                System.out.println("Unknown role. Please contact support.");
+        }
+    }
+
+    private void displayPatientMenu() {
+        int choice;
+        do {
+            System.out.println("\n--- Patient Menu ---");
+            System.out.println("1. Book Appointment");
+            System.out.println("2. View My Appointments");
+            System.out.println("3. Cancel My Appointment");
+            System.out.println("4. Edit My Profile");
+            System.out.println("5. Logout");
+            System.out.print("Enter your choice: ");
+            choice = getUserChoice(); 
+
+            switch (choice) {
+                case 1:
+                    bookAppointment();
+                    break;
+                case 2:
+                    viewPatientAppointments();
+                    break;
+                case 3:
+                    System.out.println("Feature: Cancel My Appointment (coming soon!)");
+                    // callCancelPatientAppointmentMethod();
+                    break;
+                case 4:
+                    System.out.println("Feature: Edit My Profile (coming soon!)");
+                    // callEditPatientProfileMethod();
+                    break;
+                case 5:
+                    System.out.println("Logging out...");
+                    loggedInUser = null; // Clear logged-in user
+                    break;
+                default:
+                    System.out.println("Invalid choice. Please try again.");
+            }
+        } while (choice != 5 && loggedInUser != null); // Loop until logout
+
+       
+    }
+
+    private void displayDoctorMenu() {
+        int choice;
+        do {
+            System.out.println("\n--- Doctor Menu ---");
+            System.out.println("1. Doctor Check-in");
+            System.out.println("2. Set My Availability");
+            System.out.println("3. View My Appointments");
+            System.out.println("4. Cancel Appointment"); // Doctor can cancel any of their appointments
+            System.out.println("5. Edit My Profile");
+            System.out.println("6. Logout");
+            System.out.print("Enter your choice: ");
+            choice = getUserChoice();
+
+            switch (choice) {
+                case 1:
+                    System.out.println("Feature: Doctor Check-in (coming soon!)");
+                    // callDoctorCheckInMethod();
+                    break;
+                case 2:
+                    System.out.println("Feature: Set My Availability (coming soon!)");
+                    // callSetAvailabilityMethod();
+                    break;
+                case 3:
+                    System.out.println("Feature: View My Appointments (coming soon!)");
+                    // callViewDoctorAppointmentsMethod();
+                    break;
+                case 4:
+                    System.out.println("Feature: Cancel Appointment (coming soon!)");
+                    // callCancelDoctorAppointmentMethod();
+                    break;
+                case 5:
+                    System.out.println("Feature: Edit My Profile (coming soon!)");
+                    // callEditDoctorProfileMethod();
+                    break;
+                case 6:
+                    System.out.println("Logging out...");
+                    loggedInUser = null;
+                    break;
+                default:
+                    System.out.println("Invalid choice. Please try again.");
+            }
+        } while (choice != 6 && loggedInUser != null);
+    }
+
+    private void displayAdminMenu() {
+        int choice;
+        do {
+            System.out.println("\n--- Admin Menu ---");
+            System.out.println("1. Add Doctor Account");
+            System.out.println("2. Remove Doctor Account");
+            System.out.println("3. View All Appointments Report");
+            System.out.println("4. Logout");
+            System.out.print("Enter your choice: ");
+            choice = getUserChoice();
+
+            switch (choice) {
+                case 1:
+                    System.out.println("Feature: Add Doctor Account (coming soon!)");
+                    // callAddDoctorAccountMethod();
+                    break;
+                case 2:
+                    System.out.println("Feature: Remove Doctor Account (coming soon!)");
+                    // callRemoveDoctorAccountMethod();
+                    break;
+                case 3:
+                    System.out.println("Feature: View All Appointments Report (coming soon!)");
+                    // callViewAllAppointmentsReportMethod();
+                    break;
+                case 4:
+                    System.out.println("Logging out...");
+                    loggedInUser = null;
+                    break;
+                default:
+                    System.out.println("Invalid choice. Please try again.");
+            }
+        } while (choice != 4 && loggedInUser != null);
+    }
+    public static void main(String[] args) {
+        HospitalManagementApp app = new HospitalManagementApp();
+        app.start();
+    }
+}
