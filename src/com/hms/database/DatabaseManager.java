@@ -10,7 +10,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
-
 import src.com.hms.model.Appointment;
 import src.com.hms.model.AvailabilitySlot;
 import src.com.hms.model.Doctor;
@@ -128,7 +127,7 @@ public class DatabaseManager {
     }
 
     public boolean saveAppointment(Appointment appointment) {
-        String SQL_INSERT_APPOINTMENT = "INSERT INTO APPOINTMENTS(appointmentId, patientId, doctorId, date, time, status) VALUES(?,?,?,?,?,?)";
+        String SQL_INSERT_APPOINTMENT = "INSERT INTO APPOINTMENTS(appointmentId, patientId, doctorId, date, time, status, slotId) VALUES(?,?,?,?,?,?,?)";
         try (Connection conn = connect();
              PreparedStatement pstmt = conn.prepareStatement(SQL_INSERT_APPOINTMENT)) {
 
@@ -138,6 +137,7 @@ public class DatabaseManager {
             pstmt.setString(4, appointment.getDate());
             pstmt.setString(5, appointment.getTime());
             pstmt.setString(6, appointment.getStatus().name()); 
+            pstmt.setString(7, appointment.getSlotId());
 
             int rowsAffected = pstmt.executeUpdate();
             if (rowsAffected > 0) {
@@ -330,7 +330,7 @@ public class DatabaseManager {
                     String statusString = rs.getString("status");
 
                     Appointment.AppointmentStatus status = Appointment.AppointmentStatus.valueOf(statusString);
-                    Appointment appointment = new Appointment(apptId, retrievedPatientId, doctorId, date, time, status);
+                    Appointment appointment = new Appointment(apptId, retrievedPatientId, doctorId, date, time, status, null);
                     appointments.add(appointment);
                 }
                 if (appointments.isEmpty()) {
@@ -365,7 +365,7 @@ public class DatabaseManager {
                     String statusString = rs.getString("status");
 
                     Appointment.AppointmentStatus status = Appointment.AppointmentStatus.valueOf(statusString);
-                    Appointment appointment = new Appointment(apptId, patientId, retrievedDoctorId, date, time, status);
+                    Appointment appointment = new Appointment(apptId, patientId, retrievedDoctorId, date, time, status, null);
                     appointments.add(appointment);
                 }
                 if (appointments.isEmpty()) {
@@ -398,7 +398,7 @@ public class DatabaseManager {
                 String statusString = rs.getString("status");
 
                 Appointment.AppointmentStatus status = Appointment.AppointmentStatus.valueOf(statusString);
-                Appointment appointment = new Appointment(apptId, patientId, doctorId, date, time, status);
+                Appointment appointment = new Appointment(apptId, patientId, doctorId, date, time, status, null);
                 appointments.add(appointment);
             }
             if (appointments.isEmpty()) {
@@ -499,6 +499,57 @@ public class DatabaseManager {
         }
     }
 
+    public boolean cancelAppointment(String appointmentId) {
+        // SQL to get the slotId before we cancel the appointment
+        String SQL_GET_SLOT_ID = "SELECT slotId FROM APPOINTMENTS WHERE appointmentId = ?";
+
+        // SQL to update the appointment status to CANCELED
+        String SQL_UPDATE_APPOINTMENT_STATUS = "UPDATE APPOINTMENTS SET status = ? WHERE appointmentId = ?";
+
+        // SQL to update the availability slot status to unbooked
+        String SQL_UPDATE_SLOT_STATUS = "UPDATE AVAILABILITY_SLOTS SET isBooked = 0 WHERE slotId = ?";
+
+        try (Connection conn = connect();
+             PreparedStatement pstmtGetSlotId = conn.prepareStatement(SQL_GET_SLOT_ID);
+             PreparedStatement pstmtUpdateAppt = conn.prepareStatement(SQL_UPDATE_APPOINTMENT_STATUS);
+             PreparedStatement pstmtUpdateSlot = conn.prepareStatement(SQL_UPDATE_SLOT_STATUS)) {
+
+            // First, get the slotId from the appointment
+            pstmtGetSlotId.setString(1, appointmentId);
+            String slotId = null;
+            try (ResultSet rs = pstmtGetSlotId.executeQuery()) {
+                if (rs.next()) {
+                    slotId = rs.getString("slotId");
+                }
+            }
+            if (slotId == null) {
+                System.err.println("Error: Appointment not found or slotId is missing.");
+                return false;
+            }
+
+            // Second, update the appointment status
+            pstmtUpdateAppt.setString(1, Appointment.AppointmentStatus.CANCELED.name());
+            pstmtUpdateAppt.setString(2, appointmentId);
+            int apptRowsAffected = pstmtUpdateAppt.executeUpdate();
+
+            // Third, update the slot status
+            pstmtUpdateSlot.setString(1, slotId);
+            int slotRowsAffected = pstmtUpdateSlot.executeUpdate();
+
+            if (apptRowsAffected > 0 && slotRowsAffected > 0) {
+                System.out.println("Appointment " + appointmentId + " successfully canceled, and slot " + slotId + " is now available.");
+                return true;
+            } else {
+                System.err.println("Failed to cancel appointment. Database update issue.");
+                return false;
+            }
+        } catch (SQLException e) {
+            System.err.println("Error canceling appointment: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     public void createTables() {
         String SQL_CREATE_USERS_TABLE = "CREATE TABLE IF NOT EXISTS USERS ("
                 + "userId TEXT PRIMARY KEY,"
@@ -536,6 +587,7 @@ public class DatabaseManager {
                 + "date TEXT NOT NULL,"
                 + "time TEXT NOT NULL,"
                 + "status TEXT NOT NULL,"
+                + "slotId TEXT NOT NULL,"
                 + "FOREIGN KEY (patientId) REFERENCES PATIENTS(patientId),"
                 + "FOREIGN KEY (doctorId) REFERENCES DOCTORS(doctorId)"
                 + ");";
