@@ -419,6 +419,47 @@ public class HospitalManagementApp {
         }
     }
 
+    private void viewDoctorAppointments() {
+        System.out.println("\n--- My Appointments ---");
+        if (loggedInUser == null || loggedInUser.getRole() != User.UserRole.DOCTOR) {
+            System.out.println("Error: No doctor logged in or incorrect role.");
+            return;
+        }
+
+        // Get the doctor ID for the logged-in user
+        Doctor currentDoctor = dbManager.loadDoctorById(loggedInUser.getUserId());
+        if (currentDoctor == null) {
+            System.out.println("Error: Doctor profile not found for your user account.");
+            return;
+        }
+
+        List<Appointment> doctorAppointments = dbManager.loadAppointmentsByDoctorId(currentDoctor.getDoctorId());
+
+        if (doctorAppointments.isEmpty()) {
+            System.out.println("You have no appointments scheduled.");
+        } else {
+            System.out.println("Here are your appointments:");
+            System.out.println("--------------------------------------------------------------------------------------------------");
+            System.out.printf("%-10s %-25s %-12s %-10s %-15s %-10s\n",
+                              "Appt ID", "Patient Name", "Date", "Time", "Status", "Doctor ID");
+            System.out.println("--------------------------------------------------------------------------------------------------");
+            for (Appointment appt : doctorAppointments) {
+                // Load the Patient object to get the name
+                Patient patient = dbManager.loadPatientById(appt.getPatientId());
+                String patientName = (patient != null) ? patient.getName() : "Unknown Patient";
+
+                System.out.printf("%-10s %-25s %-12s %-10s %-15s %-10s\n",
+                                  appt.getAppointmentId(),
+                                  patientName, // Use patient's name here
+                                  appt.getDate(),
+                                  appt.getTime(),
+                                  appt.getStatus().name(),
+                                  appt.getDoctorId());
+            }
+            System.out.println("--------------------------------------------------------------------------------------------------");
+        }
+    }
+
     private void showUserDashboard() {
         System.out.println("\n--- " + loggedInUser.getRole() + " Dashboard ---");
         System.out.println("Welcome, " + loggedInUser.getUsername() + "!");
@@ -498,8 +539,7 @@ public class HospitalManagementApp {
                     setDoctorAvailability();
                     break;
                 case 3:
-                    System.out.println("Feature: View My Appointments (coming soon!)");
-                    // callViewDoctorAppointmentsMethod();
+                    viewDoctorAppointments();
                     break;
                 case 4:
                     System.out.println("Feature: Cancel Appointment (coming soon!)");
