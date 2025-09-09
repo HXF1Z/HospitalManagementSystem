@@ -460,6 +460,17 @@ public class HospitalManagementApp {
         }
     }
 
+    private void doctorCheckIn() {
+        System.out.println("\n--- Doctor Check-in ---");
+        if (loggedInUser == null || loggedInUser.getRole() != User.UserRole.DOCTOR) {
+            System.out.println("Error: Only doctors can check in. Please log in as a doctor.");
+            return;
+        }
+        
+        System.out.println("You have successfully checked in for your shift, Dr. " + loggedInUser.getUsername() + ".");
+        // In a more complex system, this would update a status in the DB or a log file.
+    }
+
     private void showUserDashboard() {
         System.out.println("\n--- " + loggedInUser.getRole() + " Dashboard ---");
         System.out.println("Welcome, " + loggedInUser.getUsername() + "!");
@@ -532,8 +543,7 @@ public class HospitalManagementApp {
 
             switch (choice) {
                 case 1:
-                    System.out.println("Feature: Doctor Check-in (coming soon!)");
-                    // callDoctorCheckInMethod();
+                    doctorCheckIn();
                     break;
                 case 2:
                     setDoctorAvailability();
