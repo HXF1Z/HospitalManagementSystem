@@ -471,6 +471,74 @@ public class HospitalManagementApp {
         // In a more complex system, this would update a status in the DB or a log file.
     }
 
+    private void cancelDoctorAppointment() {
+        System.out.println("\n--- Cancel an Appointment ---");
+        if (loggedInUser == null || loggedInUser.getRole() != User.UserRole.DOCTOR) {
+            System.out.println("Error: Only doctors can cancel their appointments. Please log in as a doctor.");
+            return;
+        }
+
+        Doctor currentDoctor = dbManager.loadDoctorById(loggedInUser.getUserId());
+        if (currentDoctor == null) {
+            System.out.println("Error: Doctor profile not found. Cannot cancel appointments.");
+            return;
+        }
+
+        // Display existing appointments so the doctor knows what to cancel
+        List<Appointment> doctorAppointments = dbManager.loadAppointmentsByDoctorId(currentDoctor.getDoctorId());
+        if (doctorAppointments.isEmpty()) {
+            System.out.println("You have no appointments to cancel.");
+            return;
+        }
+
+        System.out.println("Your current appointments:");
+        System.out.println("--------------------------------------------------------------------------------------------------");
+        System.out.printf("%-5s %-10s %-25s %-12s %-10s %-15s\n",
+                          "No.", "ID", "Patient Name", "Date", "Time", "Status");
+        System.out.println("--------------------------------------------------------------------------------------------------");
+        int appointmentNumber = 1;
+        for (Appointment appt : doctorAppointments) {
+            Patient patient = dbManager.loadPatientById(appt.getPatientId());
+            String patientName = (patient != null) ? patient.getName() : "Unknown Patient";
+            System.out.printf("%-5d %-10s %-25s %-12s %-10s %-15s\n",
+                              appointmentNumber++, appt.getAppointmentId(), patientName, appt.getDate(), appt.getTime(), appt.getStatus().name());
+        }
+        System.out.println("--------------------------------------------------------------------------------------------------");
+
+        int chosenAppointmentNumber;
+        Appointment chosenAppointment = null;
+        String apptIdToCancel;
+
+        do {
+            System.out.print("Select the appointment to cancel by number: ");
+            chosenAppointmentNumber = getUserChoice();
+            if (chosenAppointmentNumber >= 1 && chosenAppointmentNumber <= doctorAppointments.size()) {
+                chosenAppointment = doctorAppointments.get(chosenAppointmentNumber - 1);
+                apptIdToCancel = chosenAppointment.getAppointmentId();
+                break;
+            } else {
+                System.out.println("Invalid number. Please enter a number from the list.");
+                apptIdToCancel = null;
+            }
+        } while (chosenAppointment == null);
+
+        // Confirmation to prevent accidental cancellation
+        System.out.print("Are you sure you want to cancel appointment " + apptIdToCancel + "? (yes/no): ");
+        String confirmation = scanner.nextLine();
+        if (!confirmation.equalsIgnoreCase("yes")) {
+            System.out.println("Cancellation request aborted.");
+            return;
+        }
+
+        // Call the DatabaseManager method to perform the cancellation
+        boolean success = dbManager.cancelAppointment(apptIdToCancel);
+        if (success) {
+            System.out.println("Appointment " + apptIdToCancel + " has been successfully canceled.");
+        } else {
+            System.out.println("Failed to cancel appointment. Please check the ID and try again.");
+        }
+    }
+
     private void showUserDashboard() {
         System.out.println("\n--- " + loggedInUser.getRole() + " Dashboard ---");
         System.out.println("Welcome, " + loggedInUser.getUsername() + "!");
@@ -552,8 +620,7 @@ public class HospitalManagementApp {
                     viewDoctorAppointments();
                     break;
                 case 4:
-                    System.out.println("Feature: Cancel Appointment (coming soon!)");
-                    // callCancelDoctorAppointmentMethod();
+                    cancelDoctorAppointment();
                     break;
                 case 5:
                     System.out.println("Feature: Edit My Profile (coming soon!)");
