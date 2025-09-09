@@ -1,6 +1,6 @@
 
 
-package src.com.hms.database; 
+package com.hms.database; 
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -10,11 +10,11 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
-import src.com.hms.model.Appointment;
-import src.com.hms.model.AvailabilitySlot;
-import src.com.hms.model.Doctor;
-import src.com.hms.model.Patient;
-import src.com.hms.model.User; 
+import com.hms.model.Appointment;
+import com.hms.model.AvailabilitySlot;
+import com.hms.model.Doctor;
+import com.hms.model.Patient;
+import com.hms.model.User; 
 
 public class DatabaseManager {
 

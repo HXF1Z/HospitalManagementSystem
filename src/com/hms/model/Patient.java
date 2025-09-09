@@ -1,4 +1,4 @@
-package src.com.hms.model;
+package com.hms.model;
 
 public class Patient {
     private String patientId;

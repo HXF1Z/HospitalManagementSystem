@@ -1,6 +1,6 @@
 
 
-package src.com.hms.model; 
+package com.hms.model; 
 
 public class User {
     private String userId;

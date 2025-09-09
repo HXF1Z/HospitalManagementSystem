@@ -1,6 +1,6 @@
 
 
-package src.com.hms.model;
+package com.hms.model;
 
 public class Appointment {
     private String appointmentId;

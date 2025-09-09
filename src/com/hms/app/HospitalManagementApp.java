@@ -1,11 +1,11 @@
-package src.com.hms.app;
+package com.hms.app;
 
-import src.com.hms.database.DatabaseManager;
-import src.com.hms.model.User;
-import src.com.hms.model.Appointment;
-import src.com.hms.model.AvailabilitySlot;
-import src.com.hms.model.Doctor;
-import src.com.hms.model.Patient;
+import com.hms.database.DatabaseManager;
+import com.hms.model.User;
+import com.hms.model.Appointment;
+import com.hms.model.AvailabilitySlot;
+import com.hms.model.Doctor;
+import com.hms.model.Patient;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
@@ -377,6 +377,48 @@ public class HospitalManagementApp {
         }
     }
 
+    private void setDoctorAvailability() {
+        System.out.println("\n--- Set My Availability ---");
+        if (loggedInUser == null || loggedInUser.getRole() != User.UserRole.DOCTOR) {
+            System.out.println("Error: Only doctors can set availability. Please log in as a doctor.");
+            return;
+        }
+
+        // Get the doctor ID for the logged-in user
+        Doctor currentDoctor = dbManager.loadDoctorById(loggedInUser.getUserId());
+        if (currentDoctor == null) {
+            System.out.println("Error: Doctor profile not found for your user account. Cannot set availability.");
+            return;
+        }
+
+        System.out.print("Enter date for the slot (YYYY-MM-DD): ");
+        String date = scanner.nextLine();
+        System.out.print("Enter start time (HH:MM): ");
+        String startTime = scanner.nextLine();
+        System.out.print("Enter end time (HH:MM): ");
+        String endTime = scanner.nextLine();
+
+        // Basic validation (you'll want to improve this later)
+        if (date.isEmpty() || startTime.isEmpty() || endTime.isEmpty()) {
+            System.out.println("Error: All fields are required.");
+            return;
+        }
+
+        // Future validation for 10-minute slots would go here.
+
+        String slotId = "SLOT-" + UUID.randomUUID().toString().substring(0, 8); // Generate unique ID
+        boolean isBooked = false; // A newly created slot is always unbooked
+
+        AvailabilitySlot newSlot = new AvailabilitySlot(slotId, currentDoctor.getDoctorId(), date, startTime, endTime, isBooked);
+
+        boolean saved = dbManager.saveAvailabilitySlot(newSlot);
+        if (saved) {
+            System.out.println("Availability slot successfully added for " + currentDoctor.getName() + " on " + date + " from " + startTime + " to " + endTime + ".");
+        } else {
+            System.out.println("Failed to add availability slot. Please try again.");
+        }
+    }
+
     private void showUserDashboard() {
         System.out.println("\n--- " + loggedInUser.getRole() + " Dashboard ---");
         System.out.println("Welcome, " + loggedInUser.getUsername() + "!");
@@ -453,8 +495,7 @@ public class HospitalManagementApp {
                     // callDoctorCheckInMethod();
                     break;
                 case 2:
-                    System.out.println("Feature: Set My Availability (coming soon!)");
-                    // callSetAvailabilityMethod();
+                    setDoctorAvailability();
                     break;
                 case 3:
                     System.out.println("Feature: View My Appointments (coming soon!)");
