@@ -385,7 +385,7 @@ public class HospitalManagementApp {
         }
 
         // Get the doctor ID for the logged-in user
-        Doctor currentDoctor = dbManager.loadDoctorById(loggedInUser.getUserId());
+        Doctor currentDoctor = dbManager.loadDoctorByUserId(loggedInUser.getUserId());
         if (currentDoctor == null) {
             System.out.println("Error: Doctor profile not found for your user account. Cannot set availability.");
             return;
@@ -399,9 +399,9 @@ public class HospitalManagementApp {
         String endTime = scanner.nextLine();
 
         // Basic validation (you'll want to improve this later)
-        if (date.isEmpty() || startTime.isEmpty() || endTime.isEmpty()) {
-            System.out.println("Error: All fields are required.");
-            return;
+        if (!date.matches("\\d{4}-\\d{2}-\\d{2}") || !startTime.matches("\\d{2}:\\d{2}") || !endTime.matches("\\d{2}:\\d{2}")) {
+            System.out.println("Error: Invalid date or time format. Please use YYYY-MM-DD and HH:MM.");
+            return; // Exit the method if validation fails
         }
 
         // Future validation for 10-minute slots would go here.
@@ -427,7 +427,7 @@ public class HospitalManagementApp {
         }
 
         // Get the doctor ID for the logged-in user
-        Doctor currentDoctor = dbManager.loadDoctorById(loggedInUser.getUserId());
+        Doctor currentDoctor = dbManager.loadDoctorByUserId(loggedInUser.getUserId());
         if (currentDoctor == null) {
             System.out.println("Error: Doctor profile not found for your user account.");
             return;
@@ -510,7 +510,7 @@ public class HospitalManagementApp {
             return;
         }
 
-        Doctor currentDoctor = dbManager.loadDoctorById(loggedInUser.getUserId());
+        Doctor currentDoctor = dbManager.loadDoctorByUserId(loggedInUser.getUserId());
         if (currentDoctor == null) {
             System.out.println("Error: Doctor profile not found for your user account.");
             return;
@@ -557,6 +557,57 @@ public class HospitalManagementApp {
         // In a more complex system, this would update a status in the DB or a log file.
     }
 
+    private void addDoctorAccount() {
+        System.out.println("\n--- Add New Doctor Account ---");
+        if (loggedInUser == null || loggedInUser.getRole() != User.UserRole.ADMIN) {
+            System.out.println("Error: Only administrators can add doctor accounts.");
+            return;
+        }
+
+        System.out.print("Enter doctor's full name: ");
+        String name = scanner.nextLine();
+        System.out.print("Enter doctor's specialty: ");
+        String specialty = scanner.nextLine();
+        System.out.print("Enter doctor's mobile number: ");
+        String mobileNumber = scanner.nextLine();
+        System.out.print("Enter doctor's email address: ");
+        String email = scanner.nextLine();
+
+        System.out.print("Choose a username for the doctor: ");
+        String username = scanner.nextLine();
+        System.out.print("Choose a password for the doctor: ");
+        String password = scanner.nextLine();
+        
+        // Basic input validation
+        if (name.isEmpty() || specialty.isEmpty() || mobileNumber.isEmpty() || email.isEmpty() || username.isEmpty() || password.isEmpty()) {
+            System.out.println("Registration failed. Please fill in all required fields.");
+            return;
+        }
+
+        // Generate unique IDs for user and doctor
+        String userId = "U-" + UUID.randomUUID().toString().substring(0, 8);
+        String doctorId = "D-" + UUID.randomUUID().toString().substring(0, 8);
+
+        // Create and save a new User with the DOCTOR role
+        User newUser = new User(userId, username, password, User.UserRole.DOCTOR);
+        boolean userSaved = dbManager.saveUser(newUser);
+
+        if (userSaved) {
+            // Create and save the corresponding Doctor profile
+            Doctor newDoctor = new Doctor(doctorId, name, specialty, mobileNumber, email,"", userId);
+            boolean doctorSaved = dbManager.saveDoctor(newDoctor);
+
+            if (doctorSaved) {
+                System.out.println("New doctor account for " + name + " created successfully!");
+            } else {
+                System.err.println("Failed to save doctor details. User account was created, but doctor profile failed.");
+                dbManager.deleteUser(userId); // Rollback user creation
+            }
+        } else {
+            System.err.println("Failed to save user account. This might be due to a duplicate username.");
+        }
+    }
+
     private void cancelDoctorAppointment() {
         System.out.println("\n--- Cancel an Appointment ---");
         if (loggedInUser == null || loggedInUser.getRole() != User.UserRole.DOCTOR) {
@@ -564,7 +615,7 @@ public class HospitalManagementApp {
             return;
         }
 
-        Doctor currentDoctor = dbManager.loadDoctorById(loggedInUser.getUserId());
+        Doctor currentDoctor = dbManager.loadDoctorByUserId(loggedInUser.getUserId());
         if (currentDoctor == null) {
             System.out.println("Error: Doctor profile not found. Cannot cancel appointments.");
             return;
@@ -733,12 +784,10 @@ public class HospitalManagementApp {
 
             switch (choice) {
                 case 1:
-                    System.out.println("Feature: Add Doctor Account (coming soon!)");
-                    // callAddDoctorAccountMethod();
+                    addDoctorAccount();
                     break;
                 case 2:
-                    System.out.println("Feature: Remove Doctor Account (coming soon!)");
-                    // callRemoveDoctorAccountMethod();
+                    
                     break;
                 case 3:
                     System.out.println("Feature: View All Appointments Report (coming soon!)");

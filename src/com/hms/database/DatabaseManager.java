@@ -328,7 +328,28 @@ public class DatabaseManager {
             return false;
         }
     }
-    
+
+    public boolean deleteUser(String userId) {
+        String SQL_DELETE_USER = "DELETE FROM USERS WHERE userId = ?";
+        try (Connection conn = connect();
+             PreparedStatement pstmt = conn.prepareStatement(SQL_DELETE_USER)) {
+
+            pstmt.setString(1, userId);
+            int rowsAffected = pstmt.executeUpdate();
+            if (rowsAffected > 0) {
+                System.out.println("User with ID " + userId + " deleted successfully.");
+                return true;
+            } else {
+                System.err.println("Failed to delete user with ID " + userId + ". User not found.");
+                return false;
+            }
+        } catch (SQLException e) {
+            System.err.println("Error deleting user: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     public List<AvailabilitySlot> loadAvailableSlotsByDoctorId(String doctorId) {
         
         List<AvailabilitySlot> slots = new ArrayList<>();
@@ -497,6 +518,31 @@ public class DatabaseManager {
         return patient;
     }
 
+    public Doctor loadDoctorByUserId(String userId) {
+        String SQL = "SELECT * FROM DOCTORS WHERE userId = ?";
+        try (Connection conn = connect();
+             PreparedStatement pstmt = conn.prepareStatement(SQL)) {
+            
+            pstmt.setString(1, userId);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return new Doctor(
+                        rs.getString("doctorId"),
+                        rs.getString("name"),
+                        rs.getString("specialty"),
+                        rs.getString("mobileNumber"),
+                        rs.getString("email"),
+                        rs.getString("profilePicture"),
+                        rs.getString("userId")
+                    );
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Error loading doctor profile by userId: " + e.getMessage());
+        }
+        return null;
+    }
+    
     public List<Doctor> loadAllDoctors() {
         List<Doctor> doctors = new ArrayList<>();
         String SQL_SELECT_ALL_DOCTORS = "SELECT doctorId, name, specialty, mobileNumber, email, profilePicture, userId FROM DOCTORS";
@@ -679,6 +725,8 @@ public class DatabaseManager {
         AvailabilitySlot testSlot = new AvailabilitySlot("SLOT-TEST", "D-testall", "2025-08-11", "09:00", "09:10", false);
         dbManager.saveAvailabilitySlot(testSlot);
 
+        User adminUser = new User("A-001", "admin", "adminpass", User.UserRole.ADMIN);
+        dbManager.saveUser(adminUser);
 
         System.out.println("\n--- Testing loadAllDoctors() ---");
         List<Doctor> allDoctors = dbManager.loadAllDoctors();
