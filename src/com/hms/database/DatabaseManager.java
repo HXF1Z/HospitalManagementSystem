@@ -302,6 +302,32 @@ public class DatabaseManager {
             return false;
         }
     }
+
+    public boolean updateDoctor(Doctor doctor) {
+        String SQL_UPDATE_DOCTOR = "UPDATE DOCTORS SET name = ?, specialty = ?, mobileNumber = ?, email = ? WHERE doctorId = ?";
+        try (Connection conn = connect();
+             PreparedStatement pstmt = conn.prepareStatement(SQL_UPDATE_DOCTOR)) {
+
+            pstmt.setString(1, doctor.getName());
+            pstmt.setString(2, doctor.getSpecialty());
+            pstmt.setString(3, doctor.getMobileNumber());
+            pstmt.setString(4, doctor.getEmail());
+            pstmt.setString(5, doctor.getDoctorId());
+
+            int rowsAffected = pstmt.executeUpdate();
+            if (rowsAffected > 0) {
+                System.out.println("Doctor profile for " + doctor.getName() + " updated successfully.");
+                return true;
+            } else {
+                System.err.println("Failed to update doctor profile. Doctor not found.");
+                return false;
+            }
+        } catch (SQLException e) {
+            System.err.println("Error updating doctor profile: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
     
     public List<AvailabilitySlot> loadAvailableSlotsByDoctorId(String doctorId) {
         

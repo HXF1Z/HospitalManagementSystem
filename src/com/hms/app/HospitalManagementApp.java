@@ -503,6 +503,49 @@ public class HospitalManagementApp {
         }
     }
 
+    private void editDoctorProfile() {
+        System.out.println("\n--- Edit My Profile ---");
+        if (loggedInUser == null || loggedInUser.getRole() != User.UserRole.DOCTOR) {
+            System.out.println("Error: Only doctors can edit their profile.");
+            return;
+        }
+
+        Doctor currentDoctor = dbManager.loadDoctorById(loggedInUser.getUserId());
+        if (currentDoctor == null) {
+            System.out.println("Error: Doctor profile not found for your user account.");
+            return;
+        }
+
+        System.out.println("Current Profile Details:");
+        System.out.println("Full Name: " + currentDoctor.getName());
+        System.out.println("Specialty: " + currentDoctor.getSpecialty());
+        System.out.println("Mobile: " + currentDoctor.getMobileNumber());
+        System.out.println("Email: " + currentDoctor.getEmail());
+
+        System.out.println("\nEnter new details (press Enter to keep current value):");
+        System.out.print("New Full Name: ");
+        String newName = scanner.nextLine();
+        System.out.print("New Specialty: ");
+        String newSpecialty = scanner.nextLine();
+        System.out.print("New Mobile Number: ");
+        String newMobile = scanner.nextLine();
+        System.out.print("New Email Address: ");
+        String newEmail = scanner.nextLine();
+
+        // Update the doctor object with new values if provided
+        if (!newName.isEmpty()) currentDoctor.setName(newName);
+        if (!newSpecialty.isEmpty()) currentDoctor.setSpecialty(newSpecialty);
+        if (!newMobile.isEmpty()) currentDoctor.setMobileNumber(newMobile);
+        if (!newEmail.isEmpty()) currentDoctor.setEmail(newEmail);
+
+        boolean success = dbManager.updateDoctor(currentDoctor);
+        if (success) {
+            System.out.println("Profile updated successfully!");
+        } else {
+            System.out.println("Failed to update profile. Please try again.");
+        }
+    }
+
     private void doctorCheckIn() {
         System.out.println("\n--- Doctor Check-in ---");
         if (loggedInUser == null || loggedInUser.getRole() != User.UserRole.DOCTOR) {
@@ -665,8 +708,7 @@ public class HospitalManagementApp {
                     cancelDoctorAppointment();
                     break;
                 case 5:
-                    System.out.println("Feature: Edit My Profile (coming soon!)");
-                    // callEditDoctorProfileMethod();
+                    editDoctorProfile();
                     break;
                 case 6:
                     System.out.println("Logging out...");
