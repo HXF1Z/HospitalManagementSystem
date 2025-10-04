@@ -542,6 +542,56 @@ public class DatabaseManager {
         }
         return null;
     }
+
+    public boolean deleteDoctorAndUser(String doctorId) {
+        String SQL_GET_USER_ID = "SELECT userId FROM DOCTORS WHERE doctorId = ?";
+        String SQL_DELETE_DOCTOR = "DELETE FROM DOCTORS WHERE doctorId = ?";
+        String SQL_DELETE_USER = "DELETE FROM USERS WHERE userId = ?";
+
+        try (Connection conn = connect();
+             PreparedStatement pstmtGetUserId = conn.prepareStatement(SQL_GET_USER_ID);
+             PreparedStatement pstmtDeleteDoctor = conn.prepareStatement(SQL_DELETE_DOCTOR);
+             PreparedStatement pstmtDeleteUser = conn.prepareStatement(SQL_DELETE_USER)) {
+
+            conn.setAutoCommit(false); // Begin transaction
+
+            // Step 1: Find the userId associated with the doctorId
+            pstmtGetUserId.setString(1, doctorId);
+            String userId = null;
+            try (ResultSet rs = pstmtGetUserId.executeQuery()) {
+                if (rs.next()) {
+                    userId = rs.getString("userId");
+                }
+            }
+            if (userId == null) {
+                System.err.println("Error: Doctor with ID " + doctorId + " not found.");
+                conn.rollback();
+                return false;
+            }
+
+            // Step 2: Delete the doctor's profile
+            pstmtDeleteDoctor.setString(1, doctorId);
+            int doctorRowsAffected = pstmtDeleteDoctor.executeUpdate();
+
+            // Step 3: Delete the user's account
+            pstmtDeleteUser.setString(1, userId);
+            int userRowsAffected = pstmtDeleteUser.executeUpdate();
+
+            if (doctorRowsAffected > 0 && userRowsAffected > 0) {
+                conn.commit(); // Commit transaction
+                System.out.println("Doctor and corresponding user account deleted successfully.");
+                return true;
+            } else {
+                conn.rollback(); // Rollback on failure
+                System.err.println("Failed to delete doctor or user account.");
+                return false;
+            }
+        } catch (SQLException e) {
+            System.err.println("Error deleting doctor account: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
     
     public List<Doctor> loadAllDoctors() {
         List<Doctor> doctors = new ArrayList<>();

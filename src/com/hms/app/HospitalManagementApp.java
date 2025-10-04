@@ -676,6 +676,57 @@ public class HospitalManagementApp {
         }
     }
 
+    private void removeDoctorAccount() {
+        System.out.println("\n--- Remove Doctor Account ---");
+        if (loggedInUser == null || loggedInUser.getRole() != User.UserRole.ADMIN) {
+            System.out.println("Error: Only administrators can remove doctor accounts.");
+            return;
+        }
+
+        List<Doctor> doctors = dbManager.loadAllDoctors();
+        if (doctors.isEmpty()) {
+            System.out.println("No doctors in the system to remove.");
+            return;
+        }
+
+        System.out.println("\n--- List of Doctors ---");
+        System.out.println("------------------------------------------------------------------");
+        System.out.printf("%-5s %-10s %-25s %-15s\n", "No.", "ID", "Name", "Specialty");
+        System.out.println("------------------------------------------------------------------");
+        int doctorNumber = 1;
+        for (Doctor doc : doctors) {
+            System.out.printf("%-5d %-10s %-25s %-15s\n",
+                              doctorNumber++, doc.getDoctorId(), doc.getName(), doc.getSpecialty());
+        }
+        System.out.println("------------------------------------------------------------------");
+
+        int chosenDoctorNumber;
+        Doctor selectedDoctor = null;
+        do {
+            System.out.print("Select a doctor to remove by number: ");
+            chosenDoctorNumber = getUserChoice();
+            if (chosenDoctorNumber >= 1 && chosenDoctorNumber <= doctors.size()) {
+                selectedDoctor = doctors.get(chosenDoctorNumber - 1);
+            } else {
+                System.out.println("Invalid number. Please enter a number from the list.");
+            }
+        } while (selectedDoctor == null);
+
+        System.out.print("Are you sure you want to remove " + selectedDoctor.getName() + "? (yes/no): ");
+        String confirmation = scanner.nextLine();
+        if (!confirmation.equalsIgnoreCase("yes")) {
+            System.out.println("Removal aborted.");
+            return;
+        }
+
+        boolean success = dbManager.deleteDoctorAndUser(selectedDoctor.getDoctorId());
+        if (success) {
+            System.out.println("Doctor account removed successfully.");
+        } else {
+            System.out.println("Failed to remove doctor account. Please try again.");
+        }
+    }
+
     private void showUserDashboard() {
         System.out.println("\n--- " + loggedInUser.getRole() + " Dashboard ---");
         System.out.println("Welcome, " + loggedInUser.getUsername() + "!");
@@ -787,7 +838,7 @@ public class HospitalManagementApp {
                     addDoctorAccount();
                     break;
                 case 2:
-                    
+                    removeDoctorAccount();
                     break;
                 case 3:
                     System.out.println("Feature: View All Appointments Report (coming soon!)");
