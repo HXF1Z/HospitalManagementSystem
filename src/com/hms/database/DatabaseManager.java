@@ -276,6 +276,33 @@ public class DatabaseManager {
         return doctor;
     }
 
+    public boolean updatePatient(Patient patient) {
+        String SQL_UPDATE_PATIENT = "UPDATE PATIENTS SET name = ?, mobileNumber = ?, email = ?, dateOfBirth = ?, profilePicture = ? WHERE patientId = ?";
+        try (Connection conn = connect();
+             PreparedStatement pstmt = conn.prepareStatement(SQL_UPDATE_PATIENT)) {
+
+            pstmt.setString(1, patient.getName());
+            pstmt.setString(2, patient.getMobileNumber());
+            pstmt.setString(3, patient.getEmail());
+            pstmt.setString(4, patient.getDateOfBirth());
+            pstmt.setString(5, patient.getProfilePicture());
+            pstmt.setString(6, patient.getPatientId());
+
+            int rowsAffected = pstmt.executeUpdate();
+            if (rowsAffected > 0) {
+                System.out.println("Patient profile for " + patient.getPatientId() + " updated successfully.");
+                return true;
+            } else {
+                System.err.println("Failed to update patient profile. Patient not found.");
+                return false;
+            }
+        } catch (SQLException e) {
+            System.err.println("Error updating patient profile: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+    
     public List<AvailabilitySlot> loadAvailableSlotsByDoctorId(String doctorId) {
         
         List<AvailabilitySlot> slots = new ArrayList<>();

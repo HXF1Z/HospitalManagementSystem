@@ -49,6 +49,20 @@ public class Patient {
     public String getUserId() {
         return userId;
     }
+    public void setName(String name) {
+        this.name = name;
+    }
+    public void setMobileNumber(String mobileNumber) {
+        this.mobileNumber = mobileNumber;
+    }
+    public void setEmail(String email) {
+        this.email = email;
+    }
+    public void setDateOfBirth(String dateOfBirth) {
+        this.dateOfBirth = dateOfBirth;
+    }
+    
+
 
     
 }

@@ -460,6 +460,49 @@ public class HospitalManagementApp {
         }
     }
 
+    private void editPatientProfile() {
+        System.out.println("\n--- Edit My Profile ---");
+        if (loggedInUser == null || loggedInUser.getRole() != User.UserRole.PATIENT) {
+            System.out.println("Error: Only patients can edit their profile.");
+            return;
+        }
+
+        Patient currentPatient = dbManager.loadPatientByUserId(loggedInUser.getUserId());
+        if (currentPatient == null) {
+            System.out.println("Error: Patient profile not found for your user account.");
+            return;
+        }
+
+        System.out.println("Current Profile Details:");
+        System.out.println("Full Name: " + currentPatient.getName());
+        System.out.println("Mobile: " + currentPatient.getMobileNumber());
+        System.out.println("Email: " + currentPatient.getEmail());
+        System.out.println("Date of Birth: " + currentPatient.getDateOfBirth());
+
+        System.out.println("\nEnter new details (press Enter to keep current value):");
+        System.out.print("New Full Name: ");
+        String newName = scanner.nextLine();
+        System.out.print("New Mobile Number: ");
+        String newMobile = scanner.nextLine();
+        System.out.print("New Email Address: ");
+        String newEmail = scanner.nextLine();
+        System.out.print("New Date of Birth (YYYY-MM-DD): ");
+        String newDob = scanner.nextLine();
+        
+        // Update the patient object with new values if provided
+        if (!newName.isEmpty()) currentPatient.setName(newName);
+        if (!newMobile.isEmpty()) currentPatient.setMobileNumber(newMobile);
+        if (!newEmail.isEmpty()) currentPatient.setEmail(newEmail);
+        if (!newDob.isEmpty()) currentPatient.setDateOfBirth(newDob);
+
+        boolean success = dbManager.updatePatient(currentPatient);
+        if (success) {
+            System.out.println("Profile updated successfully!");
+        } else {
+            System.out.println("Failed to update profile. Please try again.");
+        }
+    }
+
     private void doctorCheckIn() {
         System.out.println("\n--- Doctor Check-in ---");
         if (loggedInUser == null || loggedInUser.getRole() != User.UserRole.DOCTOR) {
@@ -581,8 +624,7 @@ public class HospitalManagementApp {
                     cancelPatientAppointment();
                     break;
                 case 4:
-                    System.out.println("Feature: Edit My Profile (coming soon!)");
-                    // callEditPatientProfileMethod();
+                    editPatientProfile();
                     break;
                 case 5:
                     System.out.println("Logging out...");
