@@ -455,38 +455,6 @@ public class DatabaseManager {
         return appointments;
     }
 
-    public List<Appointment> loadAllAppointments() {
-        List<Appointment> appointments = new ArrayList<>();
-        String SQL_SELECT_ALL_APPOINTMENTS = "SELECT appointmentId, patientId, doctorId, date, time, status FROM APPOINTMENTS";
-
-        try (Connection conn = connect();
-             Statement stmt = conn.createStatement(); 
-             ResultSet rs = stmt.executeQuery(SQL_SELECT_ALL_APPOINTMENTS)) {
-
-            while (rs.next()) {
-                String apptId = rs.getString("appointmentId");
-                String patientId = rs.getString("patientId");
-                String doctorId = rs.getString("doctorId");
-                String date = rs.getString("date");
-                String time = rs.getString("time");
-                String statusString = rs.getString("status");
-
-                Appointment.AppointmentStatus status = Appointment.AppointmentStatus.valueOf(statusString);
-                Appointment appointment = new Appointment(apptId, patientId, doctorId, date, time, status, null);
-                appointments.add(appointment);
-            }
-            if (appointments.isEmpty()) {
-                System.out.println("No appointments found in the system.");
-            } else {
-                System.out.println(appointments.size() + " total appointment(s) loaded.");
-            }
-        } catch (SQLException e) {
-            System.err.println("Error loading all appointments: " + e.getMessage());
-            e.printStackTrace();
-        }
-        return appointments;
-    }
-
     public Patient loadPatientByUserId(String userId) {
         String SQL_SELECT_PATIENT_BY_USER_ID = "SELECT patientId, name, mobileNumber, email, dateOfBirth, profilePicture, userId FROM PATIENTS WHERE userId = ?";
         Patient patient = null;
@@ -592,7 +560,7 @@ public class DatabaseManager {
             return false;
         }
     }
-    
+
     public List<Doctor> loadAllDoctors() {
         List<Doctor> doctors = new ArrayList<>();
         String SQL_SELECT_ALL_DOCTORS = "SELECT doctorId, name, specialty, mobileNumber, email, profilePicture, userId FROM DOCTORS";
@@ -625,6 +593,32 @@ public class DatabaseManager {
         return doctors;
     }
 
+    public List<Appointment> loadAllAppointments() {
+        String SQL = "SELECT * FROM APPOINTMENTS";
+        List<Appointment> allAppointments = new ArrayList<>();
+
+        try (Connection conn = connect();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(SQL)) {
+
+            while (rs.next()) {
+                Appointment appointment = new Appointment(
+                    rs.getString("appointmentId"),
+                    rs.getString("patientId"),
+                    rs.getString("doctorId"),
+                    rs.getString("date"),
+                    rs.getString("time"),
+                    Appointment.AppointmentStatus.valueOf(rs.getString("status")),
+                    rs.getString("slotId") // This line correctly gets the slotId
+                );
+                allAppointments.add(appointment);
+            }
+        } catch (SQLException e) {
+            System.err.println("Error loading all appointments: " + e.getMessage());
+        }
+        return allAppointments;
+    }
+    
     public boolean updateAvailabilitySlotStatus(String slotId, boolean isBooked) {
         String SQL_UPDATE_SLOT_STATUS = "UPDATE AVAILABILITY_SLOTS SET isBooked = ? WHERE slotId = ?";
         try (Connection conn = connect();

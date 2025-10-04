@@ -822,6 +822,43 @@ public class HospitalManagementApp {
         } while (choice != 6 && loggedInUser != null);
     }
 
+    private void viewAllAppointmentsReport() {
+        System.out.println("\n--- All Appointments Report ---");
+        if (loggedInUser == null || loggedInUser.getRole() != User.UserRole.ADMIN) {
+            System.out.println("Error: Only administrators can view this report.");
+            return;
+        }
+
+        List<Appointment> allAppointments = dbManager.loadAllAppointments();
+
+        if (allAppointments.isEmpty()) {
+            System.out.println("No appointments found in the system.");
+            return;
+        }
+
+        System.out.println("------------------------------------------------------------------------------------------------------------------");
+        System.out.printf("%-10s %-25s %-25s %-12s %-10s %-15s\n",
+                          "Appt ID", "Patient Name", "Doctor Name", "Date", "Time", "Status");
+        System.out.println("------------------------------------------------------------------------------------------------------------------");
+        for (Appointment appt : allAppointments) {
+            // Load Patient and Doctor to get their names for the report
+            Patient patient = dbManager.loadPatientById(appt.getPatientId());
+            Doctor doctor = dbManager.loadDoctorById(appt.getDoctorId());
+
+            String patientName = (patient != null) ? patient.getName() : "Unknown Patient";
+            String doctorName = (doctor != null) ? doctor.getName() : "Unknown Doctor";
+
+            System.out.printf("%-10s %-25s %-25s %-12s %-10s %-15s\n",
+                              appt.getAppointmentId(),
+                              patientName,
+                              doctorName,
+                              appt.getDate(),
+                              appt.getTime(),
+                              appt.getStatus().name());
+        }
+        System.out.println("------------------------------------------------------------------------------------------------------------------");
+    }
+
     private void displayAdminMenu() {
         int choice;
         do {
@@ -841,8 +878,7 @@ public class HospitalManagementApp {
                     removeDoctorAccount();
                     break;
                 case 3:
-                    System.out.println("Feature: View All Appointments Report (coming soon!)");
-                    // callViewAllAppointmentsReportMethod();
+                    viewAllAppointmentsReport();
                     break;
                 case 4:
                     System.out.println("Logging out...");
