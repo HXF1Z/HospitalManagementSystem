@@ -73,8 +73,7 @@ The system uses **SQLite** for a lightweight and embedded database. The schema i
 1.  **Run `DatabaseManager.java`** once to create the database schema and populate it with test data.
 2.  **Run `HospitalManagementApp.java`** to launch the console-based application.
 
-
-You can also refer the user manual on documents folder for clear instructions
+Refer the user manual on documents folder for clear instructions
 ---
 
 ## 🧑‍💻 Team Members
