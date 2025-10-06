@@ -762,10 +762,16 @@ public class DatabaseManager {
     public static void main(String[] args) {
         DatabaseManager dbManager = new DatabaseManager();
         
-        User testDoctorUser = new User("D-testall", "test.all", "allpass", User.UserRole.DOCTOR);
+        User testDoctorUser = new User("D-testall", "doctor", "doctorpass", User.UserRole.DOCTOR);
         dbManager.saveUser(testDoctorUser);
         Doctor testDoctor = new Doctor("D-testall", "Dr. Test All", "General", "111222333", "test@all.com", "pic.jpg", "D-testall");
         dbManager.saveDoctor(testDoctor);
+        User patientUser = new User("P-002", "patient", "patientpass", User.UserRole.PATIENT);
+        dbManager.saveUser(patientUser);
+
+        // A corresponding Patient profile
+        Patient testPatient = new Patient("P-002", "Test Patient", "1112223333", "patient@email.com", "1990-01-01", "", "P-002");
+        dbManager.savePatient(testPatient);
         AvailabilitySlot testSlot = new AvailabilitySlot("SLOT-TEST", "D-testall", "2025-08-11", "09:00", "09:10", false);
         dbManager.saveAvailabilitySlot(testSlot);
 
