@@ -74,7 +74,7 @@ The system uses **SQLite** for a lightweight and embedded database. The schema i
 2.  **Run `HospitalManagementApp.java`** to launch the console-based application.
 
 
-*You can also refer the user manual on documents folder for clear instructions
+You can also refer the user manual on documents folder for clear instructions
 ---
 
 ## 🧑‍💻 Team Members
