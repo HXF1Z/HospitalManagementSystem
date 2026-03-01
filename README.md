@@ -39,7 +39,7 @@ The project follows a clean, organized package structure:
                 ├── AvailabilitySlot.java
                 ├── Doctor.java
                 ├── Patient.java
-                └── (other model classes)
+                └── User.java
 ```                                                                                                                                                                  
 ---
 
